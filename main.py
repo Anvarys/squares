@@ -1,3 +1,10 @@
+"""
+
+    Requires pillow library
+
+"""
+
+
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
@@ -7,7 +14,6 @@ import webbrowser as wb
 import re
 from utilities import *
 from code import command, interpret
-from time import sleep
 
 WIDTH_HEIGHT = 16
 
