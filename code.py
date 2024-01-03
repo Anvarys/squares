@@ -46,7 +46,7 @@ def interpret(code: str):
                 if args is None:
                     return i, error.fillArgs
                 rgb = tuple(map(int, args.groups()))
-                commands.append((command.square.fill, x - 1, y - 1, rgb))
+                commands.append((command.square.fill, x, y, rgb))
 
             else:
                 return i, error.squareAfter
@@ -64,7 +64,7 @@ def interpret(code: str):
                     if args is None:
                         return i, error.fillArgs
                     rgb = tuple(map(int, args.groups()))
-                    commands.append((command.squares.rect.fill, x0-1, y0-1, x1-1, y1-1, rgb))
+                    commands.append((command.squares.rect.fill, x0, y0, x1, y1, rgb))
 
                 else:
                     return i, error.rectAfter

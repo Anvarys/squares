@@ -1,5 +1,5 @@
 def rgb2hex(rgb: tuple):
-    return "#%02x%02x%02x" % rgb
+    return "#%02x%02x%02x" % (round(rgb[0]),round(rgb[1]),round(rgb[2]))
 
 
 def hex2rgb(hex0: str):
