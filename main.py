@@ -3,42 +3,28 @@
     Requires pillow library
 
 """
-
+import os.path
+import time
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
 from tkinter import colorchooser as cch
 import sys
-from PIL import Image, ImageTk
-from collections import namedtuple
+from PIL import Image, ImageTk, ImageDraw
 import webbrowser as wb
 import re
 from utilities import *
 from code import command, interpret
-
+from constants import *
+import json
 WIDTH_HEIGHT = 32
+
+font = "Andale Mono"
 
 w = tk.Tk()
 w.geometry("1240x840")
 w.resizable(False, False)
-w.title("Squares.io")
-
-sys.setrecursionlimit(10 ** 6)
-
-ColorTuple = namedtuple("Color",
-                        ["bg", "pinky", "light_pinky", "dark_pinky", "green", "dark_lime", "neon_lime", "code_bg",
-                         "blue_gray", "code_win_bg", "light_yellow", "apple_juice", "light_blue", "medium_blue"])
-ImageTuple = namedtuple("Image",
-                        ["start", "brush", "on", "off", "back", "logo", "pencil", "bucket", "square_rounded",
-                         "return0", "imageicon"])
-CursorTuple = namedtuple("Cursor", ["hand", "grab", "open", "cross"])
-
-font = "Andale Mono"
-
-color = ColorTuple("#4a0b8a", "#8a0091", "#da22e3", "#610066",
-                   "#07753b", "#27ba6c", "#0af779", "#112e1e",
-                   "#c8c8dc", "#2c6b2e", "#fff76e", "#d0cb22",
-                   "#84ffff", "#24cfd0")
+w.title("Squares.io                      |                      By Anvar")
 
 image = ImageTuple(ImageTk.PhotoImage(Image.open("assets/start.png").resize((160, 160))),
                    ImageTk.PhotoImage(Image.open("assets/brush.png").resize((140, 140))),
@@ -52,10 +38,20 @@ image = ImageTuple(ImageTk.PhotoImage(Image.open("assets/start.png").resize((160
                    ImageTk.PhotoImage(Image.open("assets/return.png").resize((50, 50))),
                    ImageTk.PhotoImage(Image.open("assets/image.png").resize((64, 64))))
 
-cursor = CursorTuple("@assets/handpointing.svg", "@assets/handopen.svg", "@assets/handgrabbing.svg",
-                     "@assets/cross.svg")
+sys.setrecursionlimit(10 ** 6)
 
 w.tk.call('wm', 'iconphoto', w, image.logo)
+
+config = {"outlines":True,"delay":100}
+
+if not os.path.isfile("squares_config.txt"):
+    with open("squares_config.txt", "w") as f:
+        f.write(json.dumps(config))
+else:
+    with open("squares_config.txt", "r") as f:
+        config = json.loads(f.read())
+
+# --------------- MAIN CANVAS (#c1)
 
 bg = tk.Frame(w, width=2000, height=2000, background=color.bg)
 bg.place(x=-200, y=-200)
@@ -64,6 +60,8 @@ c = tk.Canvas(w, width=1210, height=825, highlightthickness=0, bd=0, relief='rid
 c.place(x=20, y=20)
 
 hover = Hover(c)
+
+# --------------- CODE FRAME (#f1)
 
 code_frame = tk.Frame(w, bg=color.code_bg)
 
@@ -83,9 +81,28 @@ text = tk.Text(
 
 text.place(x=100, y=100)
 
+# --------------- SETTINGS FRAME (#f2)
+
+settings_frame = tk.Frame(w, bg=color.settings_bg)
+
+settings_c = tk.Canvas(settings_frame, bg=color.settings_bg, highlightthickness=0, bd=0, relief='ridge')
+settings_c.place(relheight=1, relwidth=1, relx=0, rely=0)
+
+coming_soon = settings_c.create_text(1240//2,840//2,text="Coming soon...",font=(font, 50))
+
+settings_back = settings_c.create_image(15, 15, anchor=tk.NW, image=image.back)
+
+settings_cursor_hover = [settings_back]
+
+settings_hover = Hover(settings_c)
+
+
+# ------------------------------------
+
 repl = [
     [r'\b(square)(?:\(.*?\))', "#27F8FF"],
     [r'\b(squares)\b', "#27F8FF"],
+    [r'\b(wait)(?:\(.*?\))', "#23b9ff"],
     ['#.*?$', "#3b3b3b"],
     [r'\b(fill|rect)(?:\(.*?\))', "#23b9ff"],
     [r'\b(all)\b', "#23b9ff"],
@@ -202,7 +219,7 @@ def onTileClick(event):
         elif current_tool == 3:
             tile_x, tile_y = round((mouseX / 800 * WIDTH_HEIGHT) // 1), round((mouseY / 800 * WIDTH_HEIGHT) // 1)
             clicked_color = new_layer[tile_x][tile_y]
-            fill(tile_x,tile_y)
+            fill(tile_x, tile_y)
             for x in range(WIDTH_HEIGHT):
                 for y in range(WIDTH_HEIGHT):
                     TILES_DATA[x][y]["fill"] = new_layer[x][y]
@@ -233,14 +250,14 @@ draw_button2 = c.create_rectangle(1025, 5, 1185, 160, fill=color.pinky, outline=
 draw_button = c.create_image(1035, 15, anchor=tk.NW, image=image.brush)
 save_button2 = c.create_rectangle(825, 730, 1000, 800, fill=color.pinky, outline=color.dark_pinky, width=width)
 load_button2 = c.create_rectangle(1025, 730, 1200, 800, fill=color.pinky, outline=color.dark_pinky, width=width)
-doc_button2 = c.create_rectangle(825, 635, 1200, 705, fill=color.pinky, outline=color.dark_pinky, width=width)
+save_image2 = c.create_rectangle(825, 635, 1200, 705, fill=color.pinky, outline=color.dark_pinky, width=width)
 outline_rect = c.create_rectangle(825, 540, 1200, 610, fill=color.pinky, outline=color.dark_pinky, width=width)
 settings_rect = c.create_rectangle(825, 445, 1200, 515, fill=color.pinky, outline=color.dark_pinky, width=width)
 code_rect = c.create_rectangle(825, 350, 1000, 420, fill=color.dark_lime, outline=color.green, width=width)
 outline_text = c.create_text(1012, 575, text="OUTLINES   ", font=(font, 50), fill=color.light_pinky)
 save_button = c.create_text(912, 765, text="SAVE", font=(font, 50), fill=color.light_pinky)
 load_button = c.create_text(1112, 765, text="LOAD", font=(font, 50), fill=color.light_pinky)
-doc_button = c.create_text(1012, 670, text="DOCUMENTATION", font=(font, 45), fill=color.light_pinky)
+save_image = c.create_text(1012, 670, text="SAVE AS IMAGE", font=(font, 45), fill=color.light_pinky)
 settings_button = c.create_text(1012, 480, text="SETTINGS", font=(font, 45), fill=color.light_pinky)
 code_button = c.create_text(912, 385, text="CODE", font=(font, 50), fill=color.neon_lime)
 outline_button = c.create_image(1100, 535, anchor=tk.NW, image=image.on)
@@ -248,9 +265,9 @@ info_text = c.create_text(1200, 802, text='', anchor=tk.NE)
 outline_is_on = True
 
 default_bar = (
-    start_button, draw_button, draw_button2, save_button, save_button2, load_button, load_button2, doc_button,
-    doc_button2, outline_button, outline_rect, outline_text, settings_button, settings_rect, code_button, code_rect,
-    info_text)
+    start_button, draw_button, draw_button2, save_button, save_button2, load_button, load_button2, save_image,
+    save_image2, outline_button, outline_rect, outline_text, code_button, code_rect,
+    info_text, settings_button, settings_rect)
 
 # Draw bar
 
@@ -323,6 +340,8 @@ def st3(e):
 def loadImage(e):
     global TILES_DATA
     filename = fd.askopenfilename(title="Load image")
+    if len(filename) < 1:
+        return
     img = Image.open(filename).resize((WIDTH_HEIGHT, WIDTH_HEIGHT))
     img = img.convert("RGBA")
     img_data = list(img.getdata())
@@ -354,8 +373,8 @@ c.tag_bind(tools_ids[3][1], "<Button>", loadImage)
 hideAll(c, draw_bar)
 
 cursor_hover = [
-    start_button, draw_button, draw_button2, save_button, save_button2, load_button, load_button2, doc_button,
-    doc_button2, outline_button, settings_button, settings_rect, code_button, code_rect
+    start_button, draw_button, draw_button2, save_button, save_button2, load_button, load_button2, save_image,
+    save_image2, outline_button, code_button, code_rect, settings_rect, settings_button
 ]
 cursor_hover.extend(draw_bar)
 
@@ -364,6 +383,8 @@ current_bar = 1
 for i in cursor_hover:
     hover.track(i)
 
+for i in settings_cursor_hover:
+    settings_hover.track(i)
 
 # Draw bar
 
@@ -371,24 +392,31 @@ for i in cursor_hover:
 def saveButton(event):
     filename = fd.asksaveasfilename(title="Save file", confirmoverwrite=True, defaultextension=".squares")
     if len(filename) == 0:
-        return None
+        return
 
     with open(filename, "w") as file:
-        file.write("Чел, это еще не готово пока что")
-
-    '''
-                 I will do it later 
-    '''
+        tiles_data_str = ""
+        for tiles in TILES_DATA:
+            tiles_data_str += "".join([chr(i["fill"][0]) + chr(i["fill"][1]) + chr(i["fill"][2]) for i in tiles])
+        file.write(
+            f"{tiles_data_str}\n{text.get('1.0', tk.END)}"
+        )
 
 
 def loadButton(event):
+    global TILES_DATA
     filename = fd.askopenfilename(title="Load file", filetypes=([("Square files", "*.squares")]))
     if len(filename) == 0:
         return None
 
-    '''
-                 I will do it later 
-    '''
+    with open(filename, "r") as file:
+        tiles, code = file.read().split('\n', maxsplit=1)
+        text.delete("1.0", tk.END)
+        text.insert("1.0", code)
+        for i in range(len(tiles)//3):
+            color_ = (ord(tiles[i*3]), ord(tiles[i*3+1]), ord(tiles[i*3+2]))
+            TILES_DATA[i // WIDTH_HEIGHT][i % WIDTH_HEIGHT]["fill"] = color_
+        update()
 
 
 def docButton(event):
@@ -427,6 +455,16 @@ def colorSelectButton(event):
 
 def drawButton(event):
     global current_bar
+    new_layer = []
+    for i1 in range(WIDTH_HEIGHT):
+        ll = []
+        for i2 in range(WIDTH_HEIGHT):
+            ll.append(layers[-1][i1][i2])
+        new_layer.append(ll)
+    for x in range(WIDTH_HEIGHT):
+        for y in range(WIDTH_HEIGHT):
+            new_layer[x][y] = TILES_DATA[x][y]["fill"]
+    layers.append(new_layer)
     hideAll(c, default_bar)
     hideAll(c, draw_bar, False)
     current_bar = 2
@@ -434,10 +472,16 @@ def drawButton(event):
 
 def codeButton(event):
     code_frame.place(x=0, y=0, relheight=1, relwidth=1)
+    text.focus_set()
 
 
-def codeBackButton(event):
+def settingsButton(event):
+    settings_frame.place(x=0, y=0, relheight=1, relwidth=1)
+
+
+def BackToMainFrameButton(event):
     code_frame.place_forget()
+    settings_frame.place_forget()
     c.focus_set()
 
 
@@ -459,21 +503,37 @@ def returnPrevLayerButton(event):
     update()
 
 
+def saveImage(event):
+    filename = fd.asksaveasfilename(defaultextension="png")
+    im = Image.new("RGBA", (WIDTH_HEIGHT, WIDTH_HEIGHT), (255, 255, 255, 0))
+    draw = ImageDraw.ImageDraw(im)
+    for x in range(WIDTH_HEIGHT):
+        for y in range(WIDTH_HEIGHT):
+            if TILES_DATA[x][y]["fill"] == (255, 255, 255):
+                draw.point((x, y), (255, 255, 255, 0))
+            else:
+                draw.point((x, y), tuple(list(TILES_DATA[x][y]["fill"]) + [255]))
+    im.resize((WIDTH_HEIGHT*64,WIDTH_HEIGHT*64),0).save(filename)
+
+
 c.tag_bind(return_button, "<Button>", returnPrevLayerButton)
 
 c.tag_bind(code_rect, "<Button>", codeButton)
 c.tag_bind(code_button, "<Button>", codeButton)
 
-code_c.tag_bind(code_back, "<Button>", codeBackButton)
+
+c.tag_bind(settings_rect, "<Button>", settingsButton)
+c.tag_bind(settings_button, "<Button>", settingsButton)
+settings_c.tag_bind(settings_back, "<Button>", BackToMainFrameButton)
+
+
+code_c.tag_bind(code_back, "<Button>", BackToMainFrameButton)
 
 c.tag_bind(save_button, "<Button>", saveButton)
 c.tag_bind(save_button2, "<Button>", saveButton)
 
 c.tag_bind(load_button, "<Button>", loadButton)
 c.tag_bind(load_button2, "<Button>", loadButton)
-
-c.tag_bind(doc_button, "<Button>", docButton)
-c.tag_bind(doc_button2, "<Button>", docButton)
 
 c.tag_bind(outline_button, "<Button>", outlineButton)
 
@@ -483,6 +543,9 @@ c.tag_bind(draw_button2, "<Button>", drawButton)
 c.tag_bind(back_default_bar_button, "<Button>", backDefaultBarButton)
 
 c.tag_bind(color_button, "<Button>", colorSelectButton)
+
+c.tag_bind(save_image, "<Button>", saveImage)
+c.tag_bind(save_image2, "<Button>", saveImage)
 
 button_pressed = False
 
@@ -497,9 +560,6 @@ def runButton(event):
         return
     for cmd in commands:
         run_cmd(cmd)
-        # update()
-        # sleep(0.5)
-    # update()
 
 
 def ButtonPress(event):
@@ -541,17 +601,22 @@ def run_cmd(cmd: tuple):
         TILES_DATA[cmd[1]][cmd[2]]['fill'] = cmd[3]
         update()
 
-    if cmd0 == command.squares.rect.fill:
+    elif cmd0 == command.squares.rect.fill:
         for x in range(cmd[1], cmd[3] + 1):
             for y in range(cmd[2], cmd[4] + 1):
                 TILES_DATA[x][y]["fill"] = cmd[5]
-                update()
 
-    if cmd0 == command.squares.all.fill:
+    elif cmd0 == command.squares.all.fill:
         for x in range(WIDTH_HEIGHT):
             for y in range(WIDTH_HEIGHT):
                 TILES_DATA[x][y]["fill"] = cmd[1]
-                update()
+
+    elif cmd0 == command.wait:
+        start = time.time()
+        while start + cmd[1] / 1000 > time.time():
+            w.update()
+
+    update()
 
 
 ##########################################################################################
@@ -576,6 +641,11 @@ try:
         if hover_code.get(code_back):
             n = False
             code_c.config(cursor=cursor.hand)
+        for i in settings_cursor_hover:
+            if settings_hover.get(i):
+                settings_c.config(cursor=cursor.hand)
+                n = False
+                break
         for i in cursor_hover:
             if hover.get(i):
                 c.config(cursor=cursor.hand)
@@ -583,6 +653,7 @@ try:
                 break
         if n:
             c.config(cursor='')
+            settings_c.config(cursor='')
             code_c.config(cursor='')
         if mouseY < 800 and mouseX < 800:
             tile_x, tile_y = round((mouseX / 800 * WIDTH_HEIGHT) // 1), round(

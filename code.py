@@ -2,21 +2,22 @@ import re
 from collections import namedtuple
 from tkinter import Tk, Canvas
 
-Command = namedtuple("Command", ["square", "squares"])
+Command = namedtuple("Command", ["square", "squares", "wait"])
 square_ = namedtuple("square", ["fill"])("square.fill")
 rect_, all_ = namedtuple("rect", ["fill"])("squares.rect.fill"), namedtuple("all", ["fill"])("squares.all.fill")
 squares_ = namedtuple("squares", ["rect", "all"])(rect_, all_)
-command = Command(square_, squares_)
+command = Command(square_, squares_, "wait")
 
-Error = namedtuple("Error", ["squareArgs", "squareAfter", "fillArgs", "rectArgs", "rectAfter", "allAfter"])
+Error = namedtuple("Error", ["squareArgs", "squareAfter", "fillArgs", "rectArgs", "rectAfter", "allAfter", "waitArgs"])
 
 error = Error(
-    "function \"square\" have 2 number arguments: X, Y (Position of square)",
+    "function \"square\" must have 2 number arguments: X, Y (Position of square)",
     "function \"square\" must have function after it (fill)",
     "function \"fill\" must have 3 number arguments: Red (0-255), Green (0-255), Blue (0-255)",
-    "function \"rect\" have 4 number arguments: X1, Y1, X2, Y2 (Positions of rectangle angles)",
+    "function \"rect\" must have 4 number arguments: X1, Y1, X2, Y2 (Positions of rectangle angles)",
     "function \"rect\" must have function after it (fill)",
-    "function \"all\" must have function after it (fill)"
+    "function \"all\" must have function after it (fill)",
+    "function \"wait\" must have 1 numer argument: Time (Time to wait in milliseconds)"
 )
 
 
@@ -79,5 +80,12 @@ def interpret(code: str):
                     commands.append((command.squares.all.fill, rgb))
                 else:
                     return i, error.allAfter
+
+        elif re.match(r"wait\(.*\)", line) is not None:
+            if re.match("wait\(\d+\)", line) is None:
+                return i, error.waitArgs
+            time_ = int(re.match(r"wait\((\d+)\)", line).groups()[-1])
+            commands.append((command.wait, time_))
+
 
     return commands
